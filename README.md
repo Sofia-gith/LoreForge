@@ -39,13 +39,13 @@ Writers who want a creative partner that actually *knows their world* — not a 
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 > Setup instructions coming soon.
 
 ---
 
-## 📌 Status
+## Status
 
  In development — built for [Hack Trek 2026](https://hack-trek.devpost.com/)
 
