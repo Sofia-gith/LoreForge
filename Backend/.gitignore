@@ -1,0 +1,29 @@
+# Binários para programas e plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Binário de teste, gerado com `go test -c`
+*.test
+
+# Perfis de cobertura de código e outros artefatos de teste
+*.out
+coverage.**
+*.coverprofile
+profile.cov
+
+# Diretórios de dependências (descomente se quiser incluir)
+# vendor/
+
+# Arquivo de workspace Go
+go.work
+go.work.sum
+
+# Arquivo de ambiente
+.env
+
+# Editor/IDE
+.idea/
+.vscode/   
