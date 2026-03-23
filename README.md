@@ -25,7 +25,7 @@ Writers who want a creative partner that actually *knows their world* — not a 
 | Layer | Technology |
 |---|---|
 | Backend | Go |
-| AI | Anthropic API (Claude) |
+| AI | Gemini API |
 | Frontend | Next.js |
 | Storage | JSON (world grimoire) |
 | Deploy | Railway (API) + Vercel (frontend) |
@@ -36,12 +36,58 @@ Writers who want a creative partner that actually *knows their world* — not a 
 
 - testing my skills to do automation and AI
 
-
 ---
 
 ## Getting Started
 
-> Setup instructions coming soon.
+### Prerequisites
+
+- [Go 1.25+](https://golang.org/dl/)
+- [Node.js 18+](https://nodejs.org/)
+- [pnpm](https://pnpm.io/)
+- A [Gemini API key](https://aistudio.google.com/)
+
+### Backend
+
+```bash
+# Clone the repository
+git clone https://github.com/Sofia-gith/LoreForge.git
+cd LoreForge/Backend
+
+# Install dependencies
+go mod tidy
+
+# Set up environment variables
+cp .env.example .env
+# Add your GEMINI_API_KEY to .env
+
+# Run the server
+go run cmd/server/main.go
+```
+
+The API will be available at `http://localhost:8080`.
+
+### Backend with Docker
+
+```bash
+cd LoreForge/Backend
+docker build -t loreforge .
+docker run -p 8080:8080 --env-file .env loreforge
+```
+
+### Frontend
+
+```bash
+cd LoreForge/frontend
+
+# Install dependencies
+pnpm install
+
+# Run the dev server
+pnpm dev
+```
+
+The app will be available at `http://localhost:3000`.
 
 ---
 
