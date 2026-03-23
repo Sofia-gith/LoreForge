@@ -4,8 +4,23 @@
   padding: 0;
 }
 
-html,
-body {
+html, body {
   background: #0d0618;
   color: #e0d0f8;
+  font-family: var(--font-crimson), serif;
+}
+
+:root {
+  --gold: #e8c84a;
+  --purple-dark: #0d0618;
+  --purple-mid: #1a0a2e;
+  --purple-border: #2a1245;
+  --purple-accent: #3d1f6e;
+  --purple-bright: #6b3fa0;
+  --purple-light: #a084c8;
+  --text-primary: #e0d0f8;
+  --text-muted: #8060a8;
+  --text-faint: #4a2080;
+  --font-display: var(--font-cinzel), serif;
+  --font-body: var(--font-crimson), serif;
 }
