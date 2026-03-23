@@ -11,9 +11,7 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Erro ao carregar .env")
-	}
+	godotenv.Load() 
 
 	client := claude.NewClient(os.Getenv("GEMINI_API_KEY"))
 	handler := api.NewHandler(client)
