@@ -20,7 +20,7 @@ Writers who want a creative partner that actually *knows their world* — not a 
 
 ---
 
-## 🔧 Tech Stack
+## 🔧  Tech Stack
 
 | Layer | Technology |
 |---|---|
