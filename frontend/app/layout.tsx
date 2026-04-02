@@ -16,8 +16,8 @@ const crimsonPro = Crimson_Pro({
 })
 
 export const metadata: Metadata = {
-  title: 'LoreForge',
-  description: 'Inteligência artificial para criadores de mundos',
+  title: 'LoreForge — Construa universos extraordinários',
+  description: 'Inteligência artificial para criadores de mundos. Crie lore, mapas, culturas e histórias com consistência profunda.',
 }
 
 export default function RootLayout({
