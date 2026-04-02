@@ -1,4 +1,7 @@
-FROM golang:1.25-alpine AS builder
+FROM golang:1.24-alpine AS builder
+
+ARG GEMINI_API_KEY
+ENV GEMINI_API_KEY=${GEMINI_API_KEY}
 
 WORKDIR /app
 
@@ -8,7 +11,12 @@ RUN go mod download
 COPY . .
 RUN go build -o loreforge ./cmd/server/main.go
 
-FROM alpine:latest
+FROM alpine:3.19
+
+ARG GEMINI_API_KEY
+ENV GEMINI_API_KEY=${GEMINI_API_KEY}
+
+RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 
