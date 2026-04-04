@@ -6,202 +6,182 @@ import styles from "./page.module.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-interface Message {
-  role: "user" | "ai";
-  text: string;
-}
-
+interface Message { role: "user" | "ai"; text: string; }
 interface Lore {
-  geography: string[] | null;
-  cultures: string[] | null;
-  history: string[] | null;
-  magic: string[] | null;
-  politics: string[] | null;
-  notes: string[] | null;
+  geography: string[] | null; cultures: string[] | null;
+  history: string[] | null;  magic: string[] | null;
+  politics: string[] | null; notes: string[] | null;
 }
+interface World { id: string; name: string; lore: Lore; }
 
-interface World {
-  id: string;
-  name: string;
-  lore: Lore;
+function SendIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M14 8L2 2l3 6-3 6 12-6z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 export default function WorldChat() {
   const { id } = useParams<{ id: string }>();
-  const [world, setWorld] = useState<World | null>(null);
+  const [world, setWorld]     = useState<World | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput]     = useState("");
   const [loading, setLoading] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const bottomRef  = useRef<HTMLDivElement>(null);
+  const inputRef   = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    async function loadWorld() {
+    async function load() {
       try {
-        const res = await fetch(`${API_URL}/worlds`);
+        const res    = await fetch(`${API_URL}/worlds`);
         const worlds: World[] = await res.json();
-        const found = worlds.find((w) => w.id === id);
+        const found  = worlds.find((w) => w.id === id);
         if (found) {
           setWorld(found);
-          setMessages([
-            {
-              role: "ai",
-              text: `Bem-vindo a ${found.name}. O grimório está pronto. O que deseja expandir hoje?`,
-            },
-          ]);
+          setMessages([{ role: "ai", text: `Bem-vindo a ${found.name}. O que deseja explorar primeiro?` }]);
         }
-      } catch (err) {
-        console.error(err);
-      }
+      } catch (err) { console.error(err); }
     }
-    loadWorld();
+    load();
   }, [id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  async function sendMessage() {
-    if (!input.trim() || loading) return;
-
-    const userMessage = input.trim();
-    setInput("");
-    setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
-    setLoading(true);
-
-    try {
-      const res = await fetch(`${API_URL}/worlds/${id}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage }),
-      });
-      const data = await res.json();
-      setMessages((prev) => [...prev, { role: "ai", text: data.response }]);
-
-      // Recarrega o mundo para atualizar o grimório
-      const worldsRes = await fetch(`${API_URL}/worlds`);
-      const worlds: World[] = await worldsRes.json();
-      const updated = worlds.find((w) => w.id === id);
-      if (updated) setWorld(updated);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "ai", text: "Erro ao conectar com o servidor." },
-      ]);
-    } finally {
-      setLoading(false);
-    }
+  function resize(el: HTMLTextAreaElement) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
   }
 
-  const loreSections = world
-    ? [
-        { label: "Culturas", items: world.lore.cultures },
-        { label: "Geografia", items: world.lore.geography },
-        { label: "Magia", items: world.lore.magic },
-        { label: "História", items: world.lore.history },
-        { label: "Política", items: world.lore.politics },
-        { label: "Notas", items: world.lore.notes },
-      ].filter((s) => s.items && s.items.length > 0)
-    : [];
+  async function send() {
+    if (!input.trim() || loading) return;
+    const text = input.trim();
+    setInput("");
+    if (inputRef.current) { inputRef.current.style.height = "auto"; }
+    setMessages((p) => [...p, { role: "user", text }]);
+    setLoading(true);
+    try {
+      const res  = await fetch(`${API_URL}/worlds/${id}/chat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+      setMessages((p) => [...p, { role: "ai", text: data.response }]);
+      const wr   = await fetch(`${API_URL}/worlds`);
+      const ws: World[] = await wr.json();
+      const upd  = ws.find((w) => w.id === id);
+      if (upd) setWorld(upd);
+    } catch {
+      setMessages((p) => [...p, { role: "ai", text: "Erro ao conectar com o servidor." }]);
+    } finally { setLoading(false); }
+  }
+
+  const loreSections = world ? [
+    { label: "Culturas",  items: world.lore.cultures  },
+    { label: "Geografia", items: world.lore.geography },
+    { label: "Magia",     items: world.lore.magic     },
+    { label: "História",  items: world.lore.history   },
+    { label: "Política",  items: world.lore.politics  },
+    { label: "Notas",     items: world.lore.notes     },
+  ].filter((s) => s.items && s.items.length > 0) : [];
 
   return (
-    <div className={styles.outer}>
-      <div className={styles.wrap}>
-        <nav className={styles.nav}>
-          <div className={styles.logo}>
-            <span className={styles.logoMark} />
-            LOREFORGE
-          </div>
-          <span className={styles.worldName}>{world?.name ?? "..."}</span>
+    <div className={styles.root}>
 
-          <div className={styles.navActions}>
-            <button
-              className={styles.navBtn}
-              onClick={() => (window.location.href = `/world/${id}/coach`)}
-            >
-              Writing Coach
-            </button>
-            <button
-              className={styles.navBtn}
-              onClick={() => (window.location.href = "/")}
-            >
-              Meus mundos
-            </button>
-          </div>
-        </nav>
+      {/* NAV */}
+      <nav className={styles.nav}>
+        <a href="/" className={styles.logo}>
+          <span className={styles.logoMark} />
+          LOREFORGE
+        </a>
+        {world && <span className={styles.worldPill}>{world.name}</span>}
+        <div className={styles.navRight}>
+          <button className={styles.navBtn} onClick={() => (window.location.href = `/worlds/${id}/coach`)}>
+            Writing Coach
+          </button>
+          <button className={styles.navBtn} onClick={() => (window.location.href = "/")}>
+            ← Mundos
+          </button>
+        </div>
+      </nav>
 
-        <div className={styles.layout}>
-          <aside className={styles.grimoire}>
-            <h4 className={styles.grimoireTitle}>Grimório</h4>
-            {loreSections.length === 0 ? (
-              <p className={styles.grimoireEmpty}>
-                O grimório está vazio. Comece uma conversa para construir seu
-                mundo.
-              </p>
-            ) : (
-              loreSections.map((section) => (
-                <div key={section.label} className={styles.loreSection}>
-                  <span className={styles.loreLabel}>{section.label}</span>
-                  {section.items!.map((item, i) => (
-                    <p key={i} className={styles.loreItem}>
-                      {item}
-                    </p>
-                  ))}
-                </div>
-              ))
-            )}
-          </aside>
+      {/* LAYOUT */}
+      <div className={styles.layout}>
 
-          <div className={styles.chatArea}>
-            <div className={styles.messages}>
-              {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`${styles.msg} ${msg.role === "user" ? styles.msgUser : ""}`}
-                >
-                  <div
-                    className={`${styles.avatar} ${msg.role === "user" ? styles.avatarUser : styles.avatarAi}`}
-                  >
-                    {msg.role === "user" ? "S" : ""}
-                  </div>
-                  <div
-                    className={`${styles.bubble} ${msg.role === "user" ? styles.bubbleUser : styles.bubbleAi}`}
-                  >
-                    {msg.text}
-                  </div>
-                </div>
+        {/* SIDEBAR */}
+        <aside className={styles.sidebar}>
+          <p className={styles.sidebarTitle}>Grimório</p>
+          {loreSections.length === 0 ? (
+            <p className={styles.sidebarEmpty}>
+              O grimório está vazio. Converse para que o lore do mundo seja registrado aqui.
+            </p>
+          ) : loreSections.map((s) => (
+            <div key={s.label} className={styles.loreGroup}>
+              <span className={styles.loreLabel}>{s.label}</span>
+              {s.items!.map((item, i) => (
+                <p key={i} className={styles.loreItem}>{item}</p>
               ))}
-              {loading && (
-                <div className={styles.msg}>
-                  <div className={`${styles.avatar} ${styles.avatarAi}`} />
-                  <div className={styles.typing}>
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                </div>
-              )}
-              <div ref={bottomRef} />
             </div>
+          ))}
+        </aside>
 
-            <div className={styles.inputBar}>
-              <input
-                className={styles.input}
-                placeholder="Pergunte sobre seu mundo..."
+        {/* CHAT */}
+        <main className={styles.chat}>
+          <div className={styles.messages}>
+            {messages.map((msg, i) => (
+              <div key={i} className={`${styles.row} ${msg.role === "user" ? styles.rowUser : styles.rowAi}`}>
+                {msg.role === "ai" && (
+                  <div className={styles.avatarAi}>
+                    <span className={styles.logoMark} />
+                  </div>
+                )}
+                <div className={`${styles.bubble} ${msg.role === "user" ? styles.bubbleUser : styles.bubbleAi}`}>
+                  {msg.text}
+                </div>
+                {msg.role === "user" && (
+                  <div className={styles.avatarUser}>S</div>
+                )}
+              </div>
+            ))}
+
+            {loading && (
+              <div className={`${styles.row} ${styles.rowAi}`}>
+                <div className={styles.avatarAi}><span className={styles.logoMark} /></div>
+                <div className={styles.typingBubble}>
+                  <span /><span /><span />
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* INPUT */}
+          <div className={styles.inputWrap}>
+            <div className={styles.inputBox}>
+              <textarea
+                ref={inputRef}
+                className={styles.textarea}
+                placeholder="Expanda seu universo…"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                rows={1}
                 disabled={loading}
+                onChange={(e) => { setInput(e.target.value); resize(e.target); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               />
               <button
                 className={styles.sendBtn}
-                onClick={sendMessage}
-                disabled={loading}
+                onClick={send}
+                disabled={loading || !input.trim()}
+                aria-label="Enviar"
               >
-                Enviar
+                <SendIcon />
               </button>
             </div>
+            <p className={styles.hint}>Enter para enviar · Shift+Enter para nova linha</p>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
