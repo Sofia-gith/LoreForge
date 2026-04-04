@@ -38,6 +38,8 @@ export default function MapBackground({ progress }: Props) {
   useEffect(() => {
     if (initiated.current) return
     initiated.current = true
+
+    // 1. Inicializa comprimentos e esconde todos os paths
     DRAW_PATHS.forEach((_, i) => {
       const el = pathRefs.current[i]
       if (!el) return
@@ -46,19 +48,31 @@ export default function MapBackground({ progress }: Props) {
       el.style.strokeDasharray  = String(len)
       el.style.strokeDashoffset = String(len)
     })
+
+    // 2. Auto-desenha os paths ao longo de ~4.5s com RAF
+    const DRAW_DURATION = 4500
+    const startTime = performance.now()
+    let rafId: number
+
+    function tick(now: number) {
+      const p = Math.min((now - startTime) / DRAW_DURATION, 1)
+
+      DRAW_PATHS.forEach((path, i) => {
+        const el  = pathRefs.current[i]
+        const len = lengths.current[i]
+        if (!el || !len) return
+        // cada path começa a se traçar no seu próprio threshold
+        const local = Math.max(0, Math.min(1, (p - path.th) / 0.18))
+        el.style.strokeDashoffset = String(len * (1 - local))
+      })
+
+      if (p < 1) rafId = requestAnimationFrame(tick)
+    }
+
+    rafId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  useEffect(() => {
-    DRAW_PATHS.forEach((p, i) => {
-      const el  = pathRefs.current[i]
-      const len = lengths.current[i]
-      if (!el || !len) return
-      const local = Math.max(0, Math.min(1, (progress - p.th) / 0.18))
-      el.style.strokeDashoffset = String(len * (1 - local))
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [progress])
 
   const op = (th: number) => Math.max(0, Math.min(1, (progress - th) / 0.12))
 
@@ -112,7 +126,7 @@ export default function MapBackground({ progress }: Props) {
 
   return (
     <svg
-      style={{ position:'absolute', top:0, left:0, width:'300vw', height:'100%', pointerEvents:'none', zIndex:2 }}
+      style={{ position:'absolute', top:0, left:0, width:'300vw', height:'100%', pointerEvents:'none', zIndex:0 }}
       viewBox="0 0 1440 700"
       preserveAspectRatio="xMidYMid meet"
     >
@@ -140,7 +154,7 @@ export default function MapBackground({ progress }: Props) {
           fill="none" stroke={p.color} strokeWidth={p.w}
           strokeLinecap="round" strokeLinejoin="round"
           opacity={p.color==='#C9993A'?0.75:0.5}
-          style={{transition:'stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1)'}}/>
+          />
       ))}
 
       {/* Montanhas Rockies */}
@@ -214,7 +228,7 @@ export default function MapBackground({ progress }: Props) {
             fill="none" stroke={p.color} strokeWidth={p.w}
             strokeLinecap="round" strokeLinejoin="round"
             opacity={p.color==='#C9993A'?0.75:0.5}
-            style={{transition:'stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1)'}}/>
+            />
         )
       })}
 

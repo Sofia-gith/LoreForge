@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion, animate } from 'framer-motion'
 import styles from './page.module.css'
 import MapBackground from './MapBackground'
+import HeroMap from './HeroMap'
 
 // ─── FOG ─────────────────────────────────────────────────────────────────────
 
@@ -87,6 +88,54 @@ const DEMO_MSGS = [
   },
   { role: 'user', text: 'Quem controla o acesso aos cristais de Obsidiana?' },
 ]
+
+// ─── TYPEWRITER ───────────────────────────────────────────────────────────────
+
+function TypewriterText({
+  text, active, delay = 0, speed = 18, className,
+}: {
+  text: string
+  active: boolean
+  delay?: number
+  speed?: number
+  className?: string
+}) {
+  const [displayed, setDisplayed] = useState('')
+
+  useEffect(() => {
+    if (!active) { setDisplayed(''); return }
+
+    let intervalId: ReturnType<typeof setInterval>
+    const timeoutId = setTimeout(() => {
+      let i = 0
+      intervalId = setInterval(() => {
+        i++
+        setDisplayed(text.slice(0, i))
+        if (i >= text.length) clearInterval(intervalId)
+      }, speed)
+    }, delay)
+
+    return () => { clearTimeout(timeoutId); clearInterval(intervalId) }
+  }, [active, text, delay, speed])
+
+  return (
+    <p className={className} style={{ minHeight: '4.5em' }}>
+      {displayed}
+      {active && displayed.length < text.length && (
+        <span style={{
+          display: 'inline-block',
+          width: '1px',
+          height: '1em',
+          background: 'var(--amber)',
+          marginLeft: '2px',
+          verticalAlign: 'text-bottom',
+          opacity: 0.8,
+          animation: 'cursorBlink 0.9s step-end infinite',
+        }} />
+      )}
+    </p>
+  )
+}
 
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 
@@ -204,9 +253,26 @@ export default function Home() {
     return () => window.removeEventListener('mousemove', onMouseMove)
   }, [])
 
-  function handleCreate() {
-    if (!worldName.trim()) return
-    router.push(`/worlds/new?name=${encodeURIComponent(worldName.trim())}`)
+  const [creating, setCreating] = useState(false)
+
+  async function handleCreate() {
+    if (!worldName.trim() || creating) return
+    setCreating(true)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/worlds`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: worldName.trim() }),
+      })
+      if (!res.ok) throw new Error('Erro ao criar mundo')
+      const world = await res.json()
+      router.push(`/worlds/${world.id}`)
+    } catch (err) {
+      console.error(err)
+      // opcional: mostrar erro pro usuário
+    } finally {
+      setCreating(false)
+    }
   }
 
   return (
@@ -260,6 +326,9 @@ export default function Home() {
 
         {/* ── SEÇÃO 1 — HERO ── */}
         <section className={styles.section}>
+          {/* mapa de tesouro de fundo */}
+          <HeroMap />
+
           {/* névoa sutil */}
           <FogCanvas />
 
@@ -308,37 +377,76 @@ export default function Home() {
         {/* ── SEÇÃO 2 — PRODUTO ── */}
         <section className={styles.section}>
           <div className={styles.sectionProduct}>
-            <motion.div
-              className={styles.productText}
-              initial={{ opacity: 0, x: -30 }}
-              animate={currentSection === 1 ? { opacity: 1, x: 0 } : { opacity: 0, x: -30 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-            >
-              <span className={styles.sectionEyebrow}>O worldbuilder</span>
+            <div className={styles.productText}>
+
+              {/* Eyebrow — wipe da esquerda pra direita */}
+              <motion.span
+                className={styles.sectionEyebrow}
+                style={{ display: 'block' }}
+                initial={{ clipPath: 'inset(0 100% 0 0)' }}
+                animate={currentSection === 1
+                  ? { clipPath: 'inset(0 0% 0 0)' }
+                  : { clipPath: 'inset(0 100% 0 0)' }}
+                transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+              >
+                O worldbuilder
+              </motion.span>
+
+              {/* Headline — cada linha sobe de trás da máscara */}
               <h2 className={styles.sectionHeadline}>
-                Seu grimório<br />
-                <em>vive e respira.</em>
+                <span style={{ display: 'block', overflow: 'hidden' }}>
+                  <motion.span
+                    style={{ display: 'block' }}
+                    initial={{ y: '115%' }}
+                    animate={currentSection === 1 ? { y: 0 } : { y: '115%' }}
+                    transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1], delay: 0.18 }}
+                  >
+                    Seu grimório
+                  </motion.span>
+                </span>
+                <span style={{ display: 'block', overflow: 'hidden' }}>
+                  <motion.span
+                    style={{ display: 'block' }}
+                    initial={{ y: '115%' }}
+                    animate={currentSection === 1 ? { y: 0 } : { y: '115%' }}
+                    transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1], delay: 0.36 }}
+                  >
+                    <em>vive e respira.</em>
+                  </motion.span>
+                </span>
               </h2>
-              <p className={styles.sectionBody}>
-                Do sistema de magia à geopolítica dos reinos — a LoreForge mantém
-                a consistência do seu universo enquanto você expande cada detalhe.
-              </p>
-              <div className={styles.ctaGroup}>
+
+              {/* Parágrafo — typewriter caractere por caractere */}
+              <TypewriterText
+                text="Do sistema de magia à geopolítica dos reinos — a LoreForge mantém a consistência do seu universo enquanto você expande cada detalhe."
+                active={currentSection === 1}
+                delay={720}
+                speed={16}
+                className={styles.sectionBody}
+              />
+
+              {/* CTAs — surgem após o texto terminar */}
+              <motion.div
+                className={styles.ctaGroup}
+                initial={{ opacity: 0, y: 8 }}
+                animate={currentSection === 1 ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+                transition={{ duration: 0.5, ease: 'easeOut', delay: 1.55 }}
+              >
                 <button className={styles.ctaPrimary} onClick={() => goToSection(2)}>
                   Criar meu mundo
                 </button>
                 <button className={styles.ctaSecondary}>
                   Ver demonstração
                 </button>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
 
             {/* Mockup do chat */}
             <motion.div
               className={styles.chatMockup}
-              initial={{ opacity: 0, x: 40 }}
-              animate={currentSection === 1 ? { opacity: 1, x: 0 } : { opacity: 0, x: 40 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+              initial={{ opacity: 0, y: -28 }}
+              animate={currentSection === 1 ? { opacity: 1, y: 0 } : { opacity: 0, y: -28 }}
+              transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1], delay: 0.32 }}
             >
               <div className={styles.mockupBar}>
                 <span className={`${styles.mockupDot} ${styles.dotBase}`} />
@@ -394,8 +502,13 @@ export default function Home() {
                 onKeyDown={e => e.key === 'Enter' && handleCreate()}
               />
               <br />
-              <button className={styles.worldSubmit} onClick={handleCreate}>
-                Começar a construir →
+              <button
+                className={styles.worldSubmit}
+                onClick={handleCreate}
+                disabled={creating}
+              >
+                 {creating ? 'Criando...' : 'Começar a construir →'}
+             
               </button>
             </motion.div>
           </div>
