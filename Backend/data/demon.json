@@ -1,0 +1,14 @@
+{
+ "id": "demon",
+ "name": "demon",
+ "created_at": "2026-04-04T14:45:20.803739-03:00",
+ "updated_at": "2026-04-04T14:45:20.803739-03:00",
+ "lore": {
+  "Geography": null,
+  "Cultures": null,
+  "History": null,
+  "Magic": null,
+  "Politics": null,
+  "Notes": null
+ }
+}

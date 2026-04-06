@@ -2,27 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, useSpring, useTransform, animate } from 'framer-motion'
+import { motion, animate } from 'framer-motion'
 import styles from './page.module.css'
-
-// ─── MAPA SVG ────────────────────────────────────────────────────────────────
-
-function MapLayer({ depth, mouseX, mouseY }: {
-  depth: number
-  mouseX: number
-  mouseY: number
-}) {
-  const springConfig = { stiffness: 60, damping: 20, mass: 1 }
-  const tx = useSpring(useTransform(() => (mouseX - 0.5) * depth * -1), springConfig)
-  const ty = useSpring(useTransform(() => (mouseY - 0.5) * depth * -1), springConfig)
-
-  return (
-    <motion.div
-      className={styles.heroLayer}
-      style={{ x: tx, y: ty }}
-    />
-  )
-}
+import MapBackground from './MapBackground'
+import HeroMap from './HeroMap'
 
 // ─── FOG ─────────────────────────────────────────────────────────────────────
 
@@ -95,132 +78,6 @@ function CornerMark({ cls }: { cls: string }) {
   )
 }
 
-// ─── ANIMATED COASTLINE ──────────────────────────────────────────────────────
-
-const COAST_D  = "M 160 490 C 170 472,180 452,192 434 C 204 416,218 400,232 384 C 246 368,260 355,276 341 C 292 327,305 316,320 302 C 335 288,346 276,358 261 C 370 246,380 232,393 219 C 406 206,420 196,436 189 C 452 182,468 179,484 180 C 500 181,515 186,528 195 C 541 204,551 216,558 230 C 565 244,568 260,568 276 C 568 292,564 308,557 322 C 550 336,539 347,526 355 C 513 363,498 368,483 370"
-const DETAIL_D = "M 483 370 C 468 372,453 371,439 367 C 425 363,412 355,401 344 C 390 333,382 319,378 304 C 374 289,374 273,378 259"
-const RIVER_D  = "M 484 180 C 480 164,474 147,466 131 C 458 115,447 100,434 88"
-
-function AnimatedCoastline() {
-  const coastRef  = useRef<SVGPathElement>(null)
-  const detailRef = useRef<SVGPathElement>(null)
-  const riverRef  = useRef<SVGPathElement>(null)
-  const [showDots,  setShowDots]  = useState(false)
-  const [showLabel, setShowLabel] = useState(false)
-
-  useEffect(() => {
-    const coast  = coastRef.current
-    const detail = detailRef.current
-    const river  = riverRef.current
-    if (!coast || !detail || !river) return
-
-    const lenCoast  = coast.getTotalLength()
-    const lenDetail = detail.getTotalLength()
-    const lenRiver  = river.getTotalLength()
-
-    coast.style.strokeDasharray   = `${lenCoast}`
-    coast.style.strokeDashoffset  = `${lenCoast}`
-    detail.style.strokeDasharray  = `${lenDetail}`
-    detail.style.strokeDashoffset = `${lenDetail}`
-    river.style.strokeDasharray   = `${lenRiver}`
-    river.style.strokeDashoffset  = `${lenRiver}`
-
-    const t1 = setTimeout(() => {
-      coast.style.transition = 'stroke-dashoffset 2.8s cubic-bezier(0.4,0,0.2,1)'
-      coast.style.strokeDashoffset = '0'
-    }, 500)
-    const t2 = setTimeout(() => {
-      detail.style.transition = 'stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1)'
-      detail.style.strokeDashoffset = '0'
-    }, 3000)
-    const t3 = setTimeout(() => {
-      river.style.transition = 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)'
-      river.style.strokeDashoffset = '0'
-    }, 4000)
-    const t4 = setTimeout(() => setShowDots(true),  4600)
-    const t5 = setTimeout(() => setShowLabel(true), 4900)
-
-    return () => { [t1,t2,t3,t4,t5].forEach(clearTimeout) }
-  }, [])
-
-  return (
-    <svg
-      style={{ position: 'absolute', top: '-8%', left: '-8%', width: '116%', height: '116%', pointerEvents: 'none' }}
-      viewBox="0 0 900 700"
-      preserveAspectRatio="xMidYMid slice"
-    >
-      <path ref={coastRef}  d={COAST_D}  fill="none" stroke="#C9993A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" opacity="0.88" />
-      <path ref={detailRef} d={DETAIL_D} fill="none" stroke="#4A7C74" strokeWidth="1.2" strokeLinecap="round" opacity="0.65" />
-      <path ref={riverRef}  d={RIVER_D}  fill="none" stroke="#4A7C74" strokeWidth="0.9" strokeLinecap="round" opacity="0.5" />
-      <circle cx="320" cy="302" r="3"   fill="#C9993A" opacity={showDots ? 0.7 : 0} style={{ transition: 'opacity 0.6s ease' }} />
-      <circle cx="484" cy="180" r="2.5" fill="#C9993A" opacity={showDots ? 0.6 : 0} style={{ transition: 'opacity 0.6s ease 0.15s' }} />
-      <circle cx="568" cy="276" r="2.5" fill="#4A7C74" opacity={showDots ? 0.6 : 0} style={{ transition: 'opacity 0.6s ease 0.3s' }} />
-      <text
-        x="500" y="164" textAnchor="middle"
-        fontFamily="var(--font-display)" fontSize="8" fill="#C9993A" letterSpacing="2"
-        opacity={showLabel ? 0.6 : 0} style={{ transition: 'opacity 0.8s ease' }}
-      >ALDENMOOR</text>
-    </svg>
-  )
-}
-
-// ─── HERO SVG MAP ─────────────────────────────────────────────────────────────
-
-function HeroMapSvg({ layer }: { layer: number }) {
-  return (
-    <svg
-      style={{ position: 'absolute', top: '-8%', left: '-8%', width: '116%', height: '116%', pointerEvents: 'none' }}
-      viewBox="0 0 900 700"
-      preserveAspectRatio="xMidYMid slice"
-    >
-      {layer === 0 && (
-        <g>
-          <g opacity="0.06" stroke="#C9993A" strokeWidth="0.5">
-            <line x1="0" y1="175" x2="900" y2="175" />
-            <line x1="0" y1="350" x2="900" y2="350" />
-            <line x1="0" y1="525" x2="900" y2="525" />
-            <line x1="225" y1="0" x2="225" y2="700" />
-            <line x1="450" y1="0" x2="450" y2="700" />
-            <line x1="675" y1="0" x2="675" y2="700" />
-          </g>
-          <g opacity="0.04" stroke="#C9993A" strokeWidth="0.5" fill="none">
-            <circle cx="450" cy="350" r="90" />
-            <circle cx="450" cy="350" r="180" />
-            <circle cx="450" cy="350" r="270" />
-            <circle cx="450" cy="350" r="360" />
-          </g>
-        </g>
-      )}
-      {layer === 2 && (
-        <g>
-          <g opacity="0.4" transform="translate(618, 218)">
-            <path d="M 0 32 L 17 0 L 34 32 Z" fill="none" stroke="#2a3d4e" strokeWidth="1.2" strokeLinejoin="round" />
-            <path d="M 24 32 L 42 4 L 60 32 Z" fill="none" stroke="#2a3d4e" strokeWidth="1"   strokeLinejoin="round" />
-            <path d="M 48 32 L 63 9 L 78 32 Z" fill="none" stroke="#1e3040" strokeWidth="0.8" strokeLinejoin="round" />
-          </g>
-          <g opacity="0.14" stroke="#1B2B3B" strokeWidth="0.6">
-            <line x1="280" y1="382" x2="306" y2="408" />
-            <line x1="302" y1="370" x2="334" y2="402" />
-            <line x1="326" y1="362" x2="360" y2="396" />
-            <line x1="350" y1="356" x2="384" y2="390" />
-            <line x1="374" y1="352" x2="408" y2="386" />
-          </g>
-          <g opacity="0.45" transform="translate(768, 558)">
-            <circle cx="0" cy="0" r="24" fill="none" stroke="#1B2B3B" strokeWidth="0.8" />
-            <circle cx="0" cy="0" r="4"  fill="none" stroke="#4A7C74" strokeWidth="0.8" />
-            <line x1="0"   y1="-24" x2="0"   y2="24"  stroke="#1B2B3B" strokeWidth="0.7" />
-            <line x1="-24" y1="0"   x2="24"  y2="0"   stroke="#1B2B3B" strokeWidth="0.7" />
-            <line x1="-17" y1="-17" x2="17"  y2="17"  stroke="#162330" strokeWidth="0.4" />
-            <line x1="17"  y1="-17" x2="-17" y2="17"  stroke="#162330" strokeWidth="0.4" />
-            <path d="M 0 -24 L 5 -10 L 0 -5 L -5 -10 Z" fill="#C9993A" />
-            <text x="0" y="-30" textAnchor="middle" fontFamily="var(--font-display)" fontSize="9" fill="#4A7C74">N</text>
-          </g>
-        </g>
-      )}
-    </svg>
-  )
-}
-
 // ─── DEMO MESSAGES ────────────────────────────────────────────────────────────
 
 const DEMO_MSGS = [
@@ -232,6 +89,54 @@ const DEMO_MSGS = [
   { role: 'user', text: 'Quem controla o acesso aos cristais de Obsidiana?' },
 ]
 
+// ─── TYPEWRITER ───────────────────────────────────────────────────────────────
+
+function TypewriterText({
+  text, active, delay = 0, speed = 18, className,
+}: {
+  text: string
+  active: boolean
+  delay?: number
+  speed?: number
+  className?: string
+}) {
+  const [displayed, setDisplayed] = useState('')
+
+  useEffect(() => {
+    if (!active) { setDisplayed(''); return }
+
+    let intervalId: ReturnType<typeof setInterval>
+    const timeoutId = setTimeout(() => {
+      let i = 0
+      intervalId = setInterval(() => {
+        i++
+        setDisplayed(text.slice(0, i))
+        if (i >= text.length) clearInterval(intervalId)
+      }, speed)
+    }, delay)
+
+    return () => { clearTimeout(timeoutId); clearInterval(intervalId) }
+  }, [active, text, delay, speed])
+
+  return (
+    <p className={className} style={{ minHeight: '4.5em' }}>
+      {displayed}
+      {active && displayed.length < text.length && (
+        <span style={{
+          display: 'inline-block',
+          width: '1px',
+          height: '1em',
+          background: 'var(--amber)',
+          marginLeft: '2px',
+          verticalAlign: 'text-bottom',
+          opacity: 0.8,
+          animation: 'cursorBlink 0.9s step-end infinite',
+        }} />
+      )}
+    </p>
+  )
+}
+
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -242,11 +147,10 @@ export default function Home() {
   // mouse normalizado 0-1
   const mouseX = useRef(0.5)
   const mouseY = useRef(0.5)
-  const [mouseXState, setMouseXState] = useState(0.5)
-  const [mouseYState, setMouseYState] = useState(0.5)
 
   // seção atual
   const [currentSection, setCurrentSection] = useState(0)
+  const [scrollProgress, setScrollProgress] = useState(0)
   const totalSections = 3
 
   // world input
@@ -258,9 +162,6 @@ export default function Home() {
   // cursor
   const cursorRef = useRef<HTMLDivElement>(null)
   const cursorRingRef = useRef<HTMLDivElement>(null)
-
-  // scroll horizontal — progress 0..1
-  const scrollProgress = useRef(0)
   const targetSection = useRef(0)
   const animating = useRef(false)
 
@@ -271,6 +172,7 @@ export default function Home() {
     if (clamped === currentSection) return
     animating.current = true
     setCurrentSection(clamped)
+    setScrollProgress(clamped / (totalSections - 1))
 
     const track = trackRef.current
     if (!track) return
@@ -337,8 +239,6 @@ export default function Home() {
       const ny = y / window.innerHeight
       mouseX.current = nx
       mouseY.current = ny
-      setMouseXState(nx)
-      setMouseYState(ny)
 
       // coordenadas fictícias
       const lat = (48 + (ny - 0.5) * 4).toFixed(2)
@@ -353,13 +253,27 @@ export default function Home() {
     return () => window.removeEventListener('mousemove', onMouseMove)
   }, [])
 
-  function handleCreate() {
-    if (!worldName.trim()) return
-    router.push(`/worlds/new?name=${encodeURIComponent(worldName.trim())}`)
-  }
+  const [creating, setCreating] = useState(false)
 
-  // depths para cada camada
-  const depths = [8, 22, 36]
+  async function handleCreate() {
+    if (!worldName.trim() || creating) return
+    setCreating(true)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/worlds`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: worldName.trim() }),
+      })
+      if (!res.ok) throw new Error('Erro ao criar mundo')
+      const world = await res.json()
+      router.push(`/worlds/${world.id}`)
+    } catch (err) {
+      console.error(err)
+      // opcional: mostrar erro pro usuário
+    } finally {
+      setCreating(false)
+    }
+  }
 
   return (
     <div ref={rootRef} className={styles.root}>
@@ -405,35 +319,18 @@ export default function Home() {
       {/* Track horizontal */}
       <motion.div ref={trackRef} className={styles.track}>
 
+        {/* ── MAPA DE FUNDO — se desenha com o scroll ── */}
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '300vw', height: '100%', pointerEvents: 'none' }}>
+          <MapBackground progress={scrollProgress} />
+        </div>
+
         {/* ── SEÇÃO 1 — HERO ── */}
         <section className={styles.section}>
-          {/* névoa */}
+          {/* mapa de tesouro de fundo */}
+          <HeroMap />
+
+          {/* névoa sutil */}
           <FogCanvas />
-
-          {/* camadas de parallax — layer 1 (costa animada) fica fora do map */}
-          {depths.map((d, i) => (
-            <motion.div
-              key={i}
-              className={styles.heroLayer}
-              style={{
-                x: useSpring((mouseXState - 0.5) * d * -1, { stiffness: 55, damping: 18 }),
-                y: useSpring((mouseYState - 0.5) * d * -1, { stiffness: 55, damping: 18 }),
-              }}
-            >
-              {i !== 1 && <HeroMapSvg layer={i} />}
-            </motion.div>
-          ))}
-
-          {/* costa animada — na profundidade intermediária com seu próprio parallax */}
-          <motion.div
-            className={styles.heroLayer}
-            style={{
-              x: useSpring((mouseXState - 0.5) * depths[1] * -1, { stiffness: 55, damping: 18 }),
-              y: useSpring((mouseYState - 0.5) * depths[1] * -1, { stiffness: 55, damping: 18 }),
-            }}
-          >
-            <AnimatedCoastline />
-          </motion.div>
 
           {/* cantos */}
           <CornerMark cls={styles.cornerTL} />
@@ -480,37 +377,76 @@ export default function Home() {
         {/* ── SEÇÃO 2 — PRODUTO ── */}
         <section className={styles.section}>
           <div className={styles.sectionProduct}>
-            <motion.div
-              className={styles.productText}
-              initial={{ opacity: 0, x: -30 }}
-              animate={currentSection === 1 ? { opacity: 1, x: 0 } : { opacity: 0, x: -30 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-            >
-              <span className={styles.sectionEyebrow}>O worldbuilder</span>
+            <div className={styles.productText}>
+
+              {/* Eyebrow — wipe da esquerda pra direita */}
+              <motion.span
+                className={styles.sectionEyebrow}
+                style={{ display: 'block' }}
+                initial={{ clipPath: 'inset(0 100% 0 0)' }}
+                animate={currentSection === 1
+                  ? { clipPath: 'inset(0 0% 0 0)' }
+                  : { clipPath: 'inset(0 100% 0 0)' }}
+                transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+              >
+                O worldbuilder
+              </motion.span>
+
+              {/* Headline — cada linha sobe de trás da máscara */}
               <h2 className={styles.sectionHeadline}>
-                Seu grimório<br />
-                <em>vive e respira.</em>
+                <span style={{ display: 'block', overflow: 'hidden' }}>
+                  <motion.span
+                    style={{ display: 'block' }}
+                    initial={{ y: '115%' }}
+                    animate={currentSection === 1 ? { y: 0 } : { y: '115%' }}
+                    transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1], delay: 0.18 }}
+                  >
+                    Seu grimório
+                  </motion.span>
+                </span>
+                <span style={{ display: 'block', overflow: 'hidden' }}>
+                  <motion.span
+                    style={{ display: 'block' }}
+                    initial={{ y: '115%' }}
+                    animate={currentSection === 1 ? { y: 0 } : { y: '115%' }}
+                    transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1], delay: 0.36 }}
+                  >
+                    <em>vive e respira.</em>
+                  </motion.span>
+                </span>
               </h2>
-              <p className={styles.sectionBody}>
-                Do sistema de magia à geopolítica dos reinos — a LoreForge mantém
-                a consistência do seu universo enquanto você expande cada detalhe.
-              </p>
-              <div className={styles.ctaGroup}>
+
+              {/* Parágrafo — typewriter caractere por caractere */}
+              <TypewriterText
+                text="Do sistema de magia à geopolítica dos reinos — a LoreForge mantém a consistência do seu universo enquanto você expande cada detalhe."
+                active={currentSection === 1}
+                delay={720}
+                speed={16}
+                className={styles.sectionBody}
+              />
+
+              {/* CTAs — surgem após o texto terminar */}
+              <motion.div
+                className={styles.ctaGroup}
+                initial={{ opacity: 0, y: 8 }}
+                animate={currentSection === 1 ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+                transition={{ duration: 0.5, ease: 'easeOut', delay: 1.55 }}
+              >
                 <button className={styles.ctaPrimary} onClick={() => goToSection(2)}>
                   Criar meu mundo
                 </button>
                 <button className={styles.ctaSecondary}>
                   Ver demonstração
                 </button>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
 
             {/* Mockup do chat */}
             <motion.div
               className={styles.chatMockup}
-              initial={{ opacity: 0, x: 40 }}
-              animate={currentSection === 1 ? { opacity: 1, x: 0 } : { opacity: 0, x: 40 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+              initial={{ opacity: 0, y: -28 }}
+              animate={currentSection === 1 ? { opacity: 1, y: 0 } : { opacity: 0, y: -28 }}
+              transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1], delay: 0.32 }}
             >
               <div className={styles.mockupBar}>
                 <span className={`${styles.mockupDot} ${styles.dotBase}`} />
@@ -566,8 +502,13 @@ export default function Home() {
                 onKeyDown={e => e.key === 'Enter' && handleCreate()}
               />
               <br />
-              <button className={styles.worldSubmit} onClick={handleCreate}>
-                Começar a construir →
+              <button
+                className={styles.worldSubmit}
+                onClick={handleCreate}
+                disabled={creating}
+              >
+                 {creating ? 'Criando...' : 'Começar a construir →'}
+             
               </button>
             </motion.div>
           </div>
